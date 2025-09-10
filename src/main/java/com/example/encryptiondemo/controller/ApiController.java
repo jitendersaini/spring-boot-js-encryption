@@ -5,7 +5,10 @@ import com.example.encryptiondemo.dto.UserRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,6 +20,31 @@ public class ApiController {
     public ApiResponse getHello() {
         return new ApiResponse(true, "Hello from GET endpoint!", 
             Map.of("timestamp", LocalDateTime.now(), "method", "GET"));
+    }
+
+    @GetMapping("/users")
+    public Map<String, Object> getUsers() {
+        List<Map<String, Object>> users = new ArrayList<>();
+        
+        // Sample data for DataTable
+        for (int i = 1; i <= 10; i++) {
+            Map<String, Object> user = new HashMap<>();
+            user.put("id", i);
+            user.put("name", "User " + i);
+            user.put("email", "user" + i + "@example.com");
+            user.put("message", "Sample message for user " + i);
+            user.put("created", LocalDateTime.now().minusDays(i).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            users.add(user);
+        }
+        
+        // Return data in DataTables expected format
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", users);
+        response.put("recordsTotal", users.size());
+        response.put("recordsFiltered", users.size());
+        response.put("draw", 1);
+        
+        return response;
     }
     
     @PostMapping("/user")

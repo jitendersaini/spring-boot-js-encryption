@@ -38,6 +38,28 @@ class EncryptionClient {
     }
 
     /**
+     * Get encryption key synchronously (for jQuery override)
+     * @returns {string|null} Base64 encoded encryption key or null if not available
+     */
+    getEncryptionKeySync() {
+        if (this.encryptionKey) {
+            return this.encryptionKey;
+        }
+
+        // SECURITY: Only use key embedded in server-side template
+        // Never fetch keys from public API endpoints
+        if (window.ENCRYPTION_KEY && window.ENCRYPTION_KEY !== 'fallback-key') {
+            this.encryptionKey = window.ENCRYPTION_KEY;
+        } else {
+            // Fallback: Use hardcoded key for development only
+            this.encryptionKey = 'VRYnbfWvjr0j4K9iZDnvjQ==';
+            console.warn('Using hardcoded development key. In production, ensure ENCRYPTION_KEY is properly set in the template.');
+        }
+        
+        return this.encryptionKey;
+    }
+
+    /**
      * Encrypt text using AES encryption
      * @param {string} text - Text to encrypt
      * @returns {Promise<string>} Encrypted text
@@ -54,6 +76,27 @@ class EncryptionClient {
             return encrypted.toString();
         } catch (error) {
             console.error('Encryption failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Synchronous encryption method for jQuery override
+     * @param {string} text - Text to encrypt
+     * @param {string} key - Base64 encoded encryption key
+     * @returns {string} Encrypted text
+     */
+    encryptSync(text, key) {
+        try {
+            // The key from server is Base64 encoded, so we need to parse it as Base64
+            const keyBytes = CryptoJS.enc.Base64.parse(key);
+            const encrypted = CryptoJS.AES.encrypt(text, keyBytes, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.Pkcs7
+            });
+            return encrypted.toString();
+        } catch (error) {
+            console.error('Synchronous encryption failed:', error);
             throw error;
         }
     }
@@ -213,76 +256,68 @@ async function refreshEncryptionKey() {
     
     // Function to encrypt data and send the request
     function encryptAndSend(options, originalAjax, originalSuccess, originalError) {
-        // Create a deferred object to handle the async encryption
-        const deferred = $.Deferred();
+        // Get encryption key synchronously (it should be available from window.ENCRYPTION_KEY)
+        const encryptionKey = encryptionClient.getEncryptionKeySync();
         
-        // Perform encryption asynchronously
-        (async () => {
-            try {
-                // Get encryption key
-                const encryptionKey = await encryptionClient.getEncryptionKey();
-                
-                // Convert data to JSON string if it's an object
-                let jsonData;
-                if (typeof options.data === 'object') {
-                    jsonData = JSON.stringify(options.data);
-                } else {
-                    jsonData = options.data;
-                }
-                
-                // Encrypt the data
-                const encryptedData = await encryptionClient.encrypt(jsonData);
-                
-                // Update options with encrypted data
-                const encryptedOptions = {
-                    ...options,
-                    data: encryptedData,
-                    contentType: 'application/json' // Keep as JSON for Spring Boot compatibility
-                };
-                
-                // Send the encrypted request
-                const jqXHR = originalAjax.call(this, encryptedOptions);
-                
-                // Handle success/error callbacks if provided
-                if (originalSuccess || originalError) {
-                    jqXHR.done(function(data, textStatus, jqXHR) {
-                        if (originalSuccess) {
-                            originalSuccess.call(this, data, textStatus, jqXHR);
-                        }
-                        deferred.resolve(data, textStatus, jqXHR);
-                    });
-                    
-                    jqXHR.fail(function(jqXHR, textStatus, errorThrown) {
-                        if (originalError) {
-                            originalError.call(this, jqXHR, textStatus, errorThrown);
-                        }
-                        deferred.reject(jqXHR, textStatus, errorThrown);
-                    });
-                } else {
-                    // If no callbacks provided, just forward the promise
-                    jqXHR.done(function(data, textStatus, jqXHR) {
-                        deferred.resolve(data, textStatus, jqXHR);
-                    });
-                    
-                    jqXHR.fail(function(jqXHR, textStatus, errorThrown) {
-                        deferred.reject(jqXHR, textStatus, errorThrown);
-                    });
-                }
-                
-            } catch (error) {
-                console.error('Encryption failed:', error);
-                
-                // Call error callback if provided
-                if (originalError) {
-                    originalError.call(this, null, 'error', 'Encryption failed');
-                }
-                
-                deferred.reject(null, 'error', 'Encryption failed');
+        if (!encryptionKey) {
+            console.error('Encryption key not available');
+            if (originalError) {
+                originalError.call(this, null, 'error', 'Encryption key not available');
             }
-        })();
+            return $.Deferred().reject(null, 'error', 'Encryption key not available').promise();
+        }
         
-        // Return the jQuery promise object that supports .done(), .fail(), etc.
-        return deferred.promise();
+        try {
+            // Convert data to JSON string if it's an object
+            let jsonData;
+            if (typeof options.data === 'object') {
+                jsonData = JSON.stringify(options.data);
+            } else {
+                jsonData = options.data;
+            }
+            
+            // Encrypt the data synchronously
+            const encryptedData = encryptionClient.encryptSync(jsonData, encryptionKey);
+            
+            // Update options with encrypted data
+            const encryptedOptions = {
+                ...options,
+                data: encryptedData,
+                contentType: 'application/json' // Keep as JSON for Spring Boot compatibility
+            };
+            
+            // Send the encrypted request using original ajax
+            const jqXHR = originalAjax.call(this, encryptedOptions);
+            
+            // Handle success/error callbacks if provided
+            if (originalSuccess || originalError) {
+                jqXHR.done(function(data, textStatus, jqXHR) {
+                    if (originalSuccess) {
+                        originalSuccess.call(this, data, textStatus, jqXHR);
+                    }
+                });
+                
+                jqXHR.fail(function(jqXHR, textStatus, errorThrown) {
+                    if (originalError) {
+                        originalError.call(this, jqXHR, textStatus, errorThrown);
+                    }
+                });
+            }
+            
+            // Return the original jqXHR object to maintain all jQuery AJAX functionality including .abort()
+            return jqXHR;
+            
+        } catch (error) {
+            console.error('Encryption failed:', error);
+            
+            // Call error callback if provided
+            if (originalError) {
+                originalError.call(this, null, 'error', 'Encryption failed');
+            }
+            
+            // Return a rejected promise that maintains jQuery AJAX structure
+            return $.Deferred().reject(null, 'error', 'Encryption failed').promise();
+        }
     }
     
     // Override the ajax method
@@ -409,8 +444,145 @@ function testJQueryDoneMethod() {
     });
 }
 
+// Test function to demonstrate .abort() method works correctly (DataTables compatibility)
+function testJQueryAbortMethod() {
+    console.log('Testing jQuery .abort() method (DataTables compatibility)...');
+    
+    const jqXHR = $.ajax({
+        url: '/api/user',
+        method: 'POST',
+        data: {
+            name: 'Abort Method Test',
+            email: 'abort@test.com',
+            message: 'Testing .abort() method with encryption!'
+        }
+    });
+    
+    // Test if abort method exists (DataTables compatibility)
+    if (typeof jqXHR.abort === 'function') {
+        console.log('✅ .abort() method exists - DataTables compatible!');
+        showJQueryResponse('✅ .abort() Method Test - DataTables Compatible', { 
+            message: 'jqXHR object has .abort() method',
+            hasAbort: true,
+            jqXHRType: typeof jqXHR,
+            jqXHRMethods: Object.getOwnPropertyNames(jqXHR).filter(name => typeof jqXHR[name] === 'function')
+        });
+        
+        // Test the abort functionality
+        setTimeout(() => {
+            console.log('Calling .abort() method...');
+            jqXHR.abort();
+            console.log('✅ .abort() method called successfully!');
+        }, 100);
+        
+    } else {
+        console.log('❌ .abort() method missing - DataTables will break!');
+        showJQueryResponse('❌ .abort() Method Test - DataTables Incompatible', { 
+            message: 'jqXHR object missing .abort() method',
+            hasAbort: false,
+            jqXHRType: typeof jqXHR,
+            jqXHRMethods: Object.getOwnPropertyNames(jqXHR).filter(name => typeof jqXHR[name] === 'function')
+        });
+    }
+}
+
 function showJQueryResponse(title, data) {
     const responseDiv = document.getElementById('jqueryResponse');
+    responseDiv.style.display = 'block';
+    responseDiv.innerHTML = '<strong>' + title + '</strong><br>' + JSON.stringify(data, null, 2);
+}
+
+// DataTable functionality
+let usersTable = null;
+
+// Initialize DataTable when page loads
+$(document).ready(function() {
+    initializeDataTable();
+});
+
+function initializeDataTable() {
+    usersTable = $('#usersTable').DataTable({
+        "processing": true,
+        "serverSide": false,
+        "ajax": {
+            "url": "/api/users",
+            "type": "GET",
+            "dataSrc": "data", // Tell DataTable to look for data in the 'data' property
+            "error": function(xhr, error, thrown) {
+                console.error('DataTable AJAX error:', error);
+                showDataTableResponse('❌ DataTable AJAX Error', { error: error, status: xhr.status });
+            }
+        },
+        "columns": [
+            { "data": "id" },
+            { "data": "name" },
+            { "data": "email" },
+            { "data": "message" },
+            { "data": "created" }
+        ],
+        "pageLength": 10,
+        "responsive": true,
+        "order": [[0, "desc"]]
+    });
+}
+
+function reloadDataTable() {
+    console.log('Reloading DataTable...');
+    
+    if (usersTable) {
+        // Test if the table has the reload method and if it works with our jQuery override
+        try {
+            usersTable.ajax.reload();
+            // usersTable.ajax.reload(function(json) {
+            //     console.log('✅ DataTable reloaded successfully!', json);
+            //     showDataTableResponse('✅ DataTable Reloaded Successfully', { 
+            //         message: 'DataTable reload worked with jQuery override',
+            //         recordCount: json.data ? json.data.length : 0
+            //     });
+            // });
+        } catch (error) {
+            console.error('❌ DataTable reload failed:', error);
+            showDataTableResponse('❌ DataTable Reload Failed', { error: error.message });
+        }
+    } else {
+        console.error('DataTable not initialized');
+        showDataTableResponse('❌ DataTable Not Initialized', { error: 'DataTable not initialized' });
+    }
+}
+
+function addNewRecord() {
+    console.log('Adding new record via encrypted AJAX...');
+    
+    const newUser = {
+        name: 'DataTable Test User',
+        email: 'datatable@test.com',
+        message: 'This record was added via DataTable test with encryption!'
+    };
+    
+    // This should be automatically encrypted by our jQuery override
+    $.ajax({
+        url: '/api/user',
+        method: 'POST',
+        data: newUser,
+        contentType: 'application/json'
+    })
+    .done(function(data, textStatus, jqXHR) {
+        console.log('✅ New record added successfully!', data);
+        showDataTableResponse('✅ New Record Added Successfully', data);
+        
+        // Reload the DataTable to show the new record
+        setTimeout(() => {
+            reloadDataTable();
+        }, 1000);
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('❌ Failed to add new record:', errorThrown);
+        showDataTableResponse('❌ Failed to Add New Record', { error: errorThrown, status: textStatus });
+    });
+}
+
+function showDataTableResponse(title, data) {
+    const responseDiv = document.getElementById('datatableResponse');
     responseDiv.style.display = 'block';
     responseDiv.innerHTML = '<strong>' + title + '</strong><br>' + JSON.stringify(data, null, 2);
 }

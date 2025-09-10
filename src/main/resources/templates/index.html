@@ -132,12 +132,42 @@
                         <h5>🔄 jQuery Override Test (Automatic Encryption)</h5>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted">These buttons use regular jQuery AJAX calls that are automatically encrypted by the override.</p>
+                        <p class="text-muted">These buttons use regular jQuery AJAX calls that are automatically encrypted by the override.</p>                                                                   
                         <button class="btn btn-primary mb-2" onclick="testJQueryAjax()">Test jQuery AJAX to /api/user</button><br>                                                                                
                         <button class="btn btn-warning mb-2" onclick="testJQueryUser()">Test jQuery AJAX to /user/create</button><br>                                                                             
                         <button class="btn btn-info mb-2" onclick="testJQueryDepartment()">Test jQuery AJAX to /department/create</button><br>                                                                    
-                        <button class="btn btn-success mb-2" onclick="testJQueryDoneMethod()">Test .done() Method</button><br>                                                                    
+                        <button class="btn btn-success mb-2" onclick="testJQueryDoneMethod()">Test .done() Method</button><br>                                                                                    
+                        <button class="btn btn-dark mb-2" onclick="testJQueryAbortMethod()">Test .abort() Method (DataTables Compatible)</button><br>                                                                                                                                                                      
                         <div id="jqueryResponse" class="response-area mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- DataTable Test Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>📊 DataTable Test (jQuery Override Compatibility)</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">This DataTable uses AJAX with server-side processing and should work with the jQuery override for encryption.</p>
+                        <button class="btn btn-primary mb-3" onclick="reloadDataTable()">🔄 Reload DataTable (Test .abort() compatibility)</button>
+                        <button class="btn btn-success mb-3" onclick="addNewRecord()">➕ Add New Record (Test encryption)</button>
+                        <div class="table-responsive">
+                            <table id="usersTable" class="table table-striped table-bordered" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Message</th>
+                                        <th>Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Data will be loaded via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="datatableResponse" class="response-area mt-3" style="display: none;"></div>
                     </div>
                 </div>
 
@@ -148,6 +178,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.js"></script>
     <script th:inline="javascript">
         // Embed encryption key securely in the page
         window.ENCRYPTION_KEY = /*[[${encryptionKey}]]*/ 'fallback-key';
