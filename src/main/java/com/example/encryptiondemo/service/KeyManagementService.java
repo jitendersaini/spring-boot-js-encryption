@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class KeyManagementService {
     
-    @Value("${app.encryption.key:VRYnbfWvjr0j4K9iZDnvjQ==}")
+    @Value("${app.encryption.key:}")
     private String encryptionKey;
     
     public String getCurrentKey() {
