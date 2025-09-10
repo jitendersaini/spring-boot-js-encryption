@@ -9,7 +9,7 @@ class EncryptionClient {
     }
 
     /**
-     * Get encryption key from server or environment
+     * Get encryption key from embedded page data (secure approach)
      * @returns {Promise<string>} Base64 encoded encryption key
      */
     async getEncryptionKey() {
@@ -17,26 +17,14 @@ class EncryptionClient {
             return this.encryptionKey;
         }
 
-        try {
-            // First try to get key from server endpoint
-            const response = await fetch('/api/key');
-            if (response.ok) {
-                const data = await response.json();
-                this.encryptionKey = data.key;
-            } else {
-                throw new Error('Failed to fetch key from server');
-            }
-        } catch (error) {
-            console.warn('Failed to fetch key from server, trying fallback methods:', error);
-            
-            // Fallback 1: Try window.ENCRYPTION_KEY (from template)
-            if (window.ENCRYPTION_KEY && window.ENCRYPTION_KEY !== 'fallback-key') {
-                this.encryptionKey = window.ENCRYPTION_KEY;
-            } else {
-                // Fallback 2: Use hardcoded key for development
-                this.encryptionKey = 'VRYnbfWvjr0j4K9iZDnvjQ==';
-                console.warn('Using hardcoded development key. This should not be used in production!');
-            }
+        // SECURITY: Only use key embedded in server-side template
+        // Never fetch keys from public API endpoints
+        if (window.ENCRYPTION_KEY && window.ENCRYPTION_KEY !== 'fallback-key') {
+            this.encryptionKey = window.ENCRYPTION_KEY;
+        } else {
+            // Fallback: Use hardcoded key for development only
+            this.encryptionKey = 'VRYnbfWvjr0j4K9iZDnvjQ==';
+            console.warn('Using hardcoded development key. In production, ensure ENCRYPTION_KEY is properly set in the template.');
         }
         
         // Show key status
