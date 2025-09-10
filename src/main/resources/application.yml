@@ -16,6 +16,16 @@ spring:
 app:
   encryption:
     key: ${ENCRYPTION_KEY:VRYnbfWvjr0j4K9iZDnvjQ==}
+    # Enable/disable encryption globally
+    enabled: true
+    # List of URL patterns that should be encrypted
+    # Supports wildcards like /api/*, /user/*, /department/*
+    # Supports exact matches like /admin, /health
+    encrypted-paths:
+      - "/api/*"
+      - "/user/*"
+      - "/department/*"
+      - "/admin/*"
 
 # Logging Configuration
 logging:
