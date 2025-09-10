@@ -1,0 +1,53 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: encryption-demo
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+
+# Encryption Configuration
+# For development: uses default key below
+# For production: Set ENCRYPTION_KEY environment variable
+# Example: export ENCRYPTION_KEY="your-base64-encoded-key-here"
+app:
+  encryption:
+    key: ${ENCRYPTION_KEY:VRYnbfWvjr0j4K9iZDnvjQ==}
+
+# Logging Configuration
+logging:
+  level:
+    com.example.encryptiondemo: DEBUG
+    org.springframework.web: DEBUG
+
+---
+# Production Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: prod
+  thymeleaf:
+    cache: true
+
+# Production Logging
+logging:
+  level:
+    com.example.encryptiondemo: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+
+# Production Security Headers
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+
+# Production Encryption - REQUIRES ENVIRONMENT VARIABLE
+app:
+  encryption:
+    key: ${ENCRYPTION_KEY:}

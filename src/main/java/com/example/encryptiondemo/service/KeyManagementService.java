@@ -11,7 +11,7 @@ public class KeyManagementService {
     
     public String getCurrentKey() {
         if (encryptionKey == null || encryptionKey.trim().isEmpty()) {
-            throw new RuntimeException("Encryption key not configured. Please set app.encryption.key property or ENCRYPTION_KEY environment variable.");
+            throw new RuntimeException("Encryption key not configured. Please set ENCRYPTION_KEY environment variable or app.encryption.key property.");
         }
         return encryptionKey.trim();
     }
