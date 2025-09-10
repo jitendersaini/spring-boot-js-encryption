@@ -10,8 +10,8 @@ spring:
     suffix: .html
 
 # Encryption Configuration
-# For development: uses default key below
-# For production: Set ENCRYPTION_KEY environment variable
+# Development: uses default key below
+# Production: Set ENCRYPTION_KEY environment variable to override
 # Example: export ENCRYPTION_KEY="your-base64-encoded-key-here"
 app:
   encryption:
@@ -48,6 +48,5 @@ server:
         http-only: true
 
 # Production Encryption - REQUIRES ENVIRONMENT VARIABLE
-app:
-  encryption:
-    key: ${ENCRYPTION_KEY:}
+# The key is inherited from the default section above
+# In production, ENCRYPTION_KEY environment variable must be set
