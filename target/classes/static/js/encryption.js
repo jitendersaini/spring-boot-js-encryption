@@ -37,7 +37,6 @@ class EncryptionClient {
         return this.encryptionKey;
     }
 
-
     /**
      * Encrypt text using AES encryption
      * @param {string} text - Text to encrypt
@@ -250,7 +249,7 @@ async function refreshEncryptionKey() {
     }
     
     // Function to encrypt data and send the request
-    async function encryptAndSend(options, originalAjax) {
+    async function encryptAndSend(options, originalAjax) {alert("hello");
         try {
             // Get encryption key
             const encryptionKey = await encryptionClient.getEncryptionKey();
@@ -289,110 +288,3 @@ async function refreshEncryptionKey() {
     }
     
 })(jQuery);
-
-// Test functions for jQuery override functionality
-function testJQueryApi() {
-    $.ajax({
-        url: '/api/user',
-        method: 'POST',
-        data: {
-            name: 'jQuery Test User',
-            email: 'jquery@test.com',
-            message: 'This is automatically encrypted by jQuery override!'
-        },
-        success: function(response) {
-            showJQueryResponse('✅ /api/user (POST) - Success', response);
-        },
-        error: function(xhr, status, error) {
-            showJQueryResponse('❌ /api/user (POST) - Error', { error: error, status: status });
-        }
-    });
-}
-
-function testJQueryUser() {
-    $.ajax({
-        url: '/user/create',
-        method: 'POST',
-        data: {
-            name: 'jQuery User Test',
-            email: 'user@test.com',
-            message: 'This should be automatically encrypted!'
-        },
-        success: function(response) {
-            showJQueryResponse('✅ /user/create (POST) - Success', response);
-        },
-        error: function(xhr, status, error) {
-            showJQueryResponse('❌ /user/create (POST) - Error', { error: error, status: status });
-        }
-    });
-}
-
-function testJQueryDepartment() {
-    $.ajax({
-        url: '/department/create',
-        method: 'POST',
-        data: {
-            name: 'jQuery Department',
-            description: 'This department was created via jQuery override!'
-        },
-        success: function(response) {
-            showJQueryResponse('✅ /department/create (POST) - Success', response);
-        },
-        error: function(xhr, status, error) {
-            showJQueryResponse('❌ /department/create (POST) - Error', { error: error, status: status });
-        }
-    });
-}
-
-function testJQueryAdmin() {
-    $.ajax({
-        url: '/admin/settings',
-        method: 'POST',
-        data: {
-            theme: 'dark',
-            notifications: true,
-            message: 'Admin settings via jQuery override!'
-        },
-        success: function(response) {
-            showJQueryResponse('✅ /admin/settings (POST) - Success', response);
-        },
-        error: function(xhr, status, error) {
-            showJQueryResponse('❌ /admin/settings (POST) - Error', { error: error, status: status });
-        }
-    });
-}
-
-function testJQueryPublic() {
-    $.ajax({
-        url: '/public/endpoint',
-        method: 'POST',
-        data: {
-            message: 'This should NOT be encrypted!'
-        },
-        success: function(response) {
-            showJQueryResponse('✅ /public/endpoint (POST) - Success (No Encryption)', response);
-        },
-        error: function(xhr, status, error) {
-            showJQueryResponse('❌ /public/endpoint (POST) - Error (No Encryption)', { error: error, status: status });
-        }
-    });
-}
-
-function testJQueryGet() {
-    $.ajax({
-        url: '/api/hello',
-        method: 'GET',
-        success: function(response) {
-            showJQueryResponse('✅ /api/hello (GET) - Success (No Encryption)', response);
-        },
-        error: function(xhr, status, error) {
-            showJQueryResponse('❌ /api/hello (GET) - Error', { error: error, status: status });
-        }
-    });
-}
-
-function showJQueryResponse(title, data) {
-    const responseDiv = document.getElementById('jqueryResponse');
-    responseDiv.style.display = 'block';
-    responseDiv.innerHTML = `<strong>${title}</strong>\n${JSON.stringify(data, null, 2)}`;
-}
