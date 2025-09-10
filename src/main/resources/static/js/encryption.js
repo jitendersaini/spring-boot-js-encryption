@@ -206,26 +206,15 @@ async function refreshEncryptionKey() {
             const shouldEncrypt = shouldEncryptRequest(options.url);
             
             if (shouldEncrypt) {
+                console.log('jQuery override: Encrypting request to', options.url);
+                
                 // Store original success and error callbacks
                 const originalSuccess = options.success;
                 const originalError = options.error;
                 
-                // Override success callback to handle encryption
-                options.success = function(data, textStatus, jqXHR) {
-                    if (originalSuccess) {
-                        originalSuccess.call(this, data, textStatus, jqXHR);
-                    }
-                };
-                
-                // Override error callback to handle encryption errors
-                options.error = function(jqXHR, textStatus, errorThrown) {
-                    if (originalError) {
-                        originalError.call(this, jqXHR, textStatus, errorThrown);
-                    }
-                };
-                
-                // Encrypt the data
-                return encryptAndSend(options, originalAjax);
+                // Encrypt the data and send the request
+                encryptAndSend(options, originalAjax, originalSuccess, originalError);
+                return; // Don't call original ajax
             }
         }
         
@@ -249,7 +238,7 @@ async function refreshEncryptionKey() {
     }
     
     // Function to encrypt data and send the request
-    async function encryptAndSend(options, originalAjax) {alert("hello");
+    async function encryptAndSend(options, originalAjax, originalSuccess, originalError) {
         try {
             // Get encryption key
             const encryptionKey = await encryptionClient.getEncryptionKey();
@@ -269,18 +258,35 @@ async function refreshEncryptionKey() {
             const encryptedOptions = {
                 ...options,
                 data: encryptedData,
-                contentType: 'text/plain' // Change content type for encrypted data
+                contentType: 'application/json' // Keep as JSON for Spring Boot compatibility
             };
             
             // Send the encrypted request
-            return originalAjax.call(this, encryptedOptions);
+            const jqXHR = originalAjax.call(this, encryptedOptions);
+            
+            // Handle success/error callbacks
+            if (originalSuccess || originalError) {
+                jqXHR.done(function(data, textStatus, jqXHR) {
+                    if (originalSuccess) {
+                        originalSuccess.call(this, data, textStatus, jqXHR);
+                    }
+                });
+                
+                jqXHR.fail(function(jqXHR, textStatus, errorThrown) {
+                    if (originalError) {
+                        originalError.call(this, jqXHR, textStatus, errorThrown);
+                    }
+                });
+            }
+            
+            return jqXHR;
             
         } catch (error) {
             console.error('Encryption failed:', error);
             
             // Call error callback if provided
-            if (options.error) {
-                options.error.call(this, null, 'error', 'Encryption failed');
+            if (originalError) {
+                originalError.call(this, null, 'error', 'Encryption failed');
             }
             
             return Promise.reject(error);
@@ -288,3 +294,63 @@ async function refreshEncryptionKey() {
     }
     
 })(jQuery);
+
+// Test functions for jQuery override functionality
+function testJQueryAjax() {
+    $.ajax({
+        url: '/api/user',
+        method: 'POST',
+        data: {
+            name: 'jQuery Test User',
+            email: 'jquery@test.com',
+            message: 'This is automatically encrypted by jQuery override!'
+        },
+        success: function(response) {
+            showJQueryResponse('✅ /api/user (POST) - Success', response);
+        },
+        error: function(xhr, status, error) {
+            showJQueryResponse('❌ /api/user (POST) - Error', { error: error, status: status });
+        }
+    });
+}
+
+function testJQueryUser() {
+    $.ajax({
+        url: '/user/create',
+        method: 'POST',
+        data: {
+            name: 'jQuery User Test',
+            email: 'user@test.com',
+            message: 'This should be automatically encrypted!'
+        },
+        success: function(response) {
+            showJQueryResponse('✅ /user/create (POST) - Success', response);
+        },
+        error: function(xhr, status, error) {
+            showJQueryResponse('❌ /user/create (POST) - Error', { error: error, status: status });
+        }
+    });
+}
+
+function testJQueryDepartment() {
+    $.ajax({
+        url: '/department/create',
+        method: 'POST',
+        data: {
+            name: 'jQuery Department',
+            description: 'This should be automatically encrypted!'
+        },
+        success: function(response) {
+            showJQueryResponse('✅ /department/create (POST) - Success', response);
+        },
+        error: function(xhr, status, error) {
+            showJQueryResponse('❌ /department/create (POST) - Error', { error: error, status: status });
+        }
+    });
+}
+
+function showJQueryResponse(title, data) {
+    const responseDiv = document.getElementById('jqueryResponse');
+    responseDiv.style.display = 'block';
+    responseDiv.innerHTML = '<strong>' + title + '</strong><br>' + JSON.stringify(data, null, 2);
+}
