@@ -16,7 +16,8 @@ public class FilterConfig {
     public FilterRegistrationBean<EncryptionFilter> encryptionFilterRegistration() {
         FilterRegistrationBean<EncryptionFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(encryptionFilter);
-        registration.addUrlPatterns("/api/*");
+        // Apply to all paths in the application
+        registration.addUrlPatterns("/*");
         registration.setName("encryptionFilter");
         registration.setOrder(1);
         return registration;

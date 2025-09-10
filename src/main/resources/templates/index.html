@@ -134,6 +134,7 @@
     <script th:inline="javascript">
         // Embed encryption key securely in the page
         window.ENCRYPTION_KEY = /*[[${encryptionKey}]]*/ 'fallback-key';
+        alert(window.ENCRYPTION_KEY);
     </script>
     <script src="/js/encryption.js"></script>
 </body>
