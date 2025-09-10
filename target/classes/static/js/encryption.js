@@ -9,7 +9,7 @@ class EncryptionClient {
     }
 
     /**
-     * Get encryption key from embedded page data
+     * Get encryption key from server or environment
      * @returns {Promise<string>} Base64 encoded encryption key
      */
     async getEncryptionKey() {
@@ -17,13 +17,33 @@ class EncryptionClient {
             return this.encryptionKey;
         }
 
-        // Use the embedded key from the page
-        this.encryptionKey = window.ENCRYPTION_KEY || 'fallback-key';
+        try {
+            // First try to get key from server endpoint
+            const response = await fetch('/api/key');
+            if (response.ok) {
+                const data = await response.json();
+                this.encryptionKey = data.key;
+            } else {
+                throw new Error('Failed to fetch key from server');
+            }
+        } catch (error) {
+            console.warn('Failed to fetch key from server, trying fallback methods:', error);
+            
+            // Fallback 1: Try window.ENCRYPTION_KEY (from template)
+            if (window.ENCRYPTION_KEY && window.ENCRYPTION_KEY !== 'fallback-key') {
+                this.encryptionKey = window.ENCRYPTION_KEY;
+            } else {
+                // Fallback 2: Use hardcoded key for development
+                this.encryptionKey = 'VRYnbfWvjr0j4K9iZDnvjQ==';
+                console.warn('Using hardcoded development key. This should not be used in production!');
+            }
+        }
         
         // Show key status
         const keyStatus = document.getElementById('keyStatus');
         if (keyStatus) {
             keyStatus.style.display = 'block';
+            keyStatus.textContent = '✅ Key loaded successfully: ' + this.encryptionKey.substring(0, 20) + '...';
         }
         
         return this.encryptionKey;

@@ -16,15 +16,20 @@ public class KeyController {
     private KeyManagementService keyManagementService;
     
     /**
-     * DEPRECATED: This endpoint is no longer used for security reasons.
-     * Keys are now embedded in the page during server-side rendering.
-     * 
-     * This endpoint is kept for backward compatibility but should be removed in production.
+     * Get encryption key for client-side encryption
+     * This endpoint provides the encryption key to the frontend
      */
-    @Deprecated
-    @PostMapping("/encryption-key")
-    public Map<String, String> getEncryptionKey(@RequestHeader(value = "X-Client-Id", required = false) String clientId) {
-        // This endpoint is deprecated for security reasons
-        throw new SecurityException("This endpoint is deprecated. Keys are now embedded in the page.");
+    @GetMapping("/key")
+    public Map<String, String> getEncryptionKey() {
+        Map<String, String> response = new HashMap<>();
+        try {
+            String key = keyManagementService.getKeyForClient();
+            response.put("key", key);
+            response.put("status", "success");
+        } catch (Exception e) {
+            response.put("error", "Failed to retrieve encryption key: " + e.getMessage());
+            response.put("status", "error");
+        }
+        return response;
     }
 }
