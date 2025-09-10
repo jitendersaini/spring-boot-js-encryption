@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>jQuery Override Test</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { margin: 5px; padding: 10px 15px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>jQuery Override Test</h1>
+    <p>This page tests the automatic encryption functionality for jQuery AJAX calls.</p>
+    
+    <div class="test-section">
+        <h3>Test Encrypted Endpoints (Should be automatically encrypted)</h3>
+        <button onclick="testApiUser()">Test /api/user (POST)</button>
+        <button onclick="testUserCreate()">Test /user/create (POST)</button>
+        <button onclick="testDepartmentCreate()">Test /department/create (POST)</button>
+        <button onclick="testAdminSettings()">Test /admin/settings (POST)</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Non-Encrypted Endpoints (Should NOT be encrypted)</h3>
+        <button onclick="testPublicEndpoint()">Test /public/endpoint (POST)</button>
+        <button onclick="testApiHello()">Test /api/hello (GET)</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        // Set the encryption key (same as server)
+        window.ENCRYPTION_KEY = 'VRYnbfWvjr0j4K9iZDnvjQ==';
+        
+        // Include the encryption client and override
+        const script = document.createElement('script');
+        script.src = 'http://localhost:8080/js/encryption.js';
+        document.head.appendChild(script);
+        
+        function showResult(title, data, isSuccess = true) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-section ${isSuccess ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <h4>${title}</h4>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function testApiUser() {
+            $.ajax({
+                url: 'http://localhost:8080/api/user',
+                method: 'POST',
+                data: {
+                    name: 'jQuery Test User',
+                    email: 'jquery@test.com',
+                    message: 'This should be automatically encrypted!'
+                },
+                success: function(response) {
+                    showResult('✅ /api/user (POST) - Success (Auto-Encrypted)', response);
+                },
+                error: function(xhr, status, error) {
+                    showResult('❌ /api/user (POST) - Error', { error: error, status: status }, false);
+                }
+            });
+        }
+        
+        function testUserCreate() {
+            $.ajax({
+                url: 'http://localhost:8080/user/create',
+                method: 'POST',
+                data: {
+                    name: 'jQuery User Test',
+                    email: 'user@test.com',
+                    message: 'This should be automatically encrypted!'
+                },
+                success: function(response) {
+                    showResult('✅ /user/create (POST) - Success (Auto-Encrypted)', response);
+                },
+                error: function(xhr, status, error) {
+                    showResult('❌ /user/create (POST) - Error', { error: error, status: status }, false);
+                }
+            });
+        }
+        
+        function testDepartmentCreate() {
+            $.ajax({
+                url: 'http://localhost:8080/department/create',
+                method: 'POST',
+                data: {
+                    name: 'jQuery Department',
+                    description: 'This should be automatically encrypted!'
+                },
+                success: function(response) {
+                    showResult('✅ /department/create (POST) - Success (Auto-Encrypted)', response);
+                },
+                error: function(xhr, status, error) {
+                    showResult('❌ /department/create (POST) - Error', { error: error, status: status }, false);
+                }
+            });
+        }
+        
+        function testAdminSettings() {
+            $.ajax({
+                url: 'http://localhost:8080/admin/settings',
+                method: 'POST',
+                data: {
+                    theme: 'dark',
+                    notifications: true,
+                    message: 'This should be automatically encrypted!'
+                },
+                success: function(response) {
+                    showResult('✅ /admin/settings (POST) - Success (Auto-Encrypted)', response);
+                },
+                error: function(xhr, status, error) {
+                    showResult('❌ /admin/settings (POST) - Error', { error: error, status: status }, false);
+                }
+            });
+        }
+        
+        function testPublicEndpoint() {
+            $.ajax({
+                url: 'http://localhost:8080/public/endpoint',
+                method: 'POST',
+                data: {
+                    message: 'This should NOT be encrypted!'
+                },
+                success: function(response) {
+                    showResult('✅ /public/endpoint (POST) - Success (No Encryption)', response);
+                },
+                error: function(xhr, status, error) {
+                    showResult('❌ /public/endpoint (POST) - Error (No Encryption)', { error: error, status: status }, false);
+                }
+            });
+        }
+        
+        function testApiHello() {
+            $.ajax({
+                url: 'http://localhost:8080/api/hello',
+                method: 'GET',
+                success: function(response) {
+                    showResult('✅ /api/hello (GET) - Success (No Encryption)', response);
+                },
+                error: function(xhr, status, error) {
+                    showResult('❌ /api/hello (GET) - Error', { error: error, status: status }, false);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

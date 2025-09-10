@@ -125,11 +125,39 @@
                         <div id="deleteResponse" class="response-area mt-3" style="display: none;"></div>
                     </div>
                 </div>
+
+                <!-- jQuery Override Test Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>🔄 jQuery Override Test (Automatic Encryption)</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">These buttons use regular jQuery AJAX calls that are automatically encrypted by the override.</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Test API Endpoints</h6>
+                                <button class="btn btn-primary mb-2" onclick="testJQueryApi()">Test /api/user (POST)</button><br>
+                                <button class="btn btn-warning mb-2" onclick="testJQueryUser()">Test /user/create (POST)</button><br>
+                                <button class="btn btn-info mb-2" onclick="testJQueryDepartment()">Test /department/create (POST)</button><br>
+                                <button class="btn btn-danger mb-2" onclick="testJQueryAdmin()">Test /admin/settings (POST)</button>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Test Non-Encrypted Endpoints</h6>
+                                <button class="btn btn-secondary mb-2" onclick="testJQueryPublic()">Test /public/endpoint (POST)</button><br>
+                                <button class="btn btn-success mb-2" onclick="testJQueryGet()">Test /api/hello (GET)</button>
+                            </div>
+                        </div>
+                        
+                        <div id="jqueryResponse" class="response-area" style="display: none;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script th:inline="javascript">
         // Embed encryption key securely in the page
