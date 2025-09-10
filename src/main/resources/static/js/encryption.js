@@ -196,31 +196,48 @@ async function refreshEncryptionKey() {
     // Store the original ajax method
     const originalAjax = $.ajax;
     
-    // Override the ajax method
-    $.ajax = function(options) {
-        // If it's a POST, PUT, PATCH, or DELETE request with data
-        if (options.data && 
-            ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method?.toUpperCase() || 'GET')) {
+        // Override the ajax method
+        $.ajax = function(options) {
+            // If it's a POST, PUT, PATCH, or DELETE request with data
+            // Check both options.method and options.type for HTTP method
+            const httpMethod = (options.method || options.type || 'GET').toUpperCase();
             
-            // Check if the request should be encrypted (based on URL patterns)
-            const shouldEncrypt = shouldEncryptRequest(options.url);
-            
-            if (shouldEncrypt) {
-                console.log('jQuery override: Encrypting request to', options.url);
-                
-                // Store original success and error callbacks
-                const originalSuccess = options.success;
-                const originalError = options.error;
-                
-                // Encrypt the data and send the request
-                encryptAndSend(options, originalAjax, originalSuccess, originalError);
-                return; // Don't call original ajax
+            // Debug logging for production troubleshooting
+            if (options.data) {
+                console.log('jQuery Override Debug:', {
+                    url: options.url,
+                    method: options.method,
+                    type: options.type,
+                    httpMethod: httpMethod,
+                    hasData: !!options.data
+                });
             }
-        }
-        
-        // If no encryption needed, call original ajax method
-        return originalAjax.call(this, options);
-    };
+            
+            // Also check if it's a POST request by default (when no method is specified)
+            const isPostRequest = httpMethod === 'POST' || 
+                                 (httpMethod === 'GET' && options.data && !options.method && !options.type);
+            
+            if (options.data && 
+                (['POST', 'PUT', 'PATCH', 'DELETE'].includes(httpMethod) || isPostRequest)) {
+                
+                // Check if the request should be encrypted (based on URL patterns)
+                const shouldEncrypt = shouldEncryptRequest(options.url);
+                
+                if (shouldEncrypt) {
+                    console.log('jQuery override: Encrypting request to', options.url, 'Method:', httpMethod);
+                    
+                    // Store original success and error callbacks
+                    const originalSuccess = options.success;
+                    const originalError = options.error;
+                    
+                    // Encrypt the data and send the request - return the promise
+                    return encryptAndSend(options, originalAjax, originalSuccess, originalError);
+                }
+            }
+            
+            // If no encryption needed, call original ajax method
+            return originalAjax.call(this, options);
+        };
     
     // Function to determine if a request should be encrypted
     function shouldEncryptRequest(url) {
@@ -237,61 +254,66 @@ async function refreshEncryptionKey() {
         return encryptedPatterns.some(pattern => url.includes(pattern));
     }
     
-    // Function to encrypt data and send the request
-    async function encryptAndSend(options, originalAjax, originalSuccess, originalError) {
-        try {
-            // Get encryption key
-            const encryptionKey = await encryptionClient.getEncryptionKey();
-            
-            // Convert data to JSON string if it's an object
-            let jsonData;
-            if (typeof options.data === 'object') {
-                jsonData = JSON.stringify(options.data);
-            } else {
-                jsonData = options.data;
-            }
-            
-            // Encrypt the data
-            const encryptedData = await encryptionClient.encrypt(jsonData);
-            
-            // Update options with encrypted data
-            const encryptedOptions = {
-                ...options,
-                data: encryptedData,
-                contentType: 'application/json' // Keep as JSON for Spring Boot compatibility
-            };
-            
-            // Send the encrypted request
-            const jqXHR = originalAjax.call(this, encryptedOptions);
-            
-            // Handle success/error callbacks
-            if (originalSuccess || originalError) {
-                jqXHR.done(function(data, textStatus, jqXHR) {
-                    if (originalSuccess) {
-                        originalSuccess.call(this, data, textStatus, jqXHR);
-                    }
-                });
+        // Function to encrypt data and send the request
+        async function encryptAndSend(options, originalAjax, originalSuccess, originalError) {
+            try {
+                // Get encryption key
+                const encryptionKey = await encryptionClient.getEncryptionKey();
                 
-                jqXHR.fail(function(jqXHR, textStatus, errorThrown) {
-                    if (originalError) {
-                        originalError.call(this, jqXHR, textStatus, errorThrown);
-                    }
-                });
+                // Convert data to JSON string if it's an object
+                let jsonData;
+                if (typeof options.data === 'object') {
+                    jsonData = JSON.stringify(options.data);
+                } else {
+                    jsonData = options.data;
+                }
+                
+                // Encrypt the data
+                const encryptedData = await encryptionClient.encrypt(jsonData);
+                
+                // Update options with encrypted data
+                const encryptedOptions = {
+                    ...options,
+                    data: encryptedData,
+                    contentType: 'application/json' // Keep as JSON for Spring Boot compatibility
+                };
+                
+                // Send the encrypted request and return the jQuery promise
+                const jqXHR = originalAjax.call(this, encryptedOptions);
+                
+                // Handle success/error callbacks if provided
+                if (originalSuccess || originalError) {
+                    jqXHR.done(function(data, textStatus, jqXHR) {
+                        if (originalSuccess) {
+                            originalSuccess.call(this, data, textStatus, jqXHR);
+                        }
+                    });
+                    
+                    jqXHR.fail(function(jqXHR, textStatus, errorThrown) {
+                        if (originalError) {
+                            originalError.call(this, jqXHR, textStatus, errorThrown);
+                        }
+                    });
+                }
+                
+                // Return the jQuery promise object that supports .done(), .fail(), etc.
+                return jqXHR;
+                
+            } catch (error) {
+                console.error('Encryption failed:', error);
+                
+                // Create a rejected jQuery promise
+                const deferred = $.Deferred();
+                deferred.reject(null, 'error', 'Encryption failed');
+                
+                // Call error callback if provided
+                if (originalError) {
+                    originalError.call(this, null, 'error', 'Encryption failed');
+                }
+                
+                return deferred.promise();
             }
-            
-            return jqXHR;
-            
-        } catch (error) {
-            console.error('Encryption failed:', error);
-            
-            // Call error callback if provided
-            if (originalError) {
-                originalError.call(this, null, 'error', 'Encryption failed');
-            }
-            
-            return Promise.reject(error);
         }
-    }
     
 })(jQuery);
 
@@ -346,6 +368,31 @@ function testJQueryDepartment() {
         error: function(xhr, status, error) {
             showJQueryResponse('❌ /department/create (POST) - Error', { error: error, status: status });
         }
+    });
+}
+
+// Test function to demonstrate .done() method works correctly
+function testJQueryDoneMethod() {
+    console.log('Testing jQuery .done() method...');
+    
+    $.ajax({
+        url: '/api/user',
+        method: 'POST',
+        data: {
+            name: 'Done Method Test',
+            email: 'done@test.com',
+            message: 'Testing .done() method with encryption!'
+        }
+    })
+    .done(function(data, textStatus, jqXHR) {
+        console.log('Data received:', data);
+        console.log('Status:', textStatus);
+        console.log('jqXHR object:', jqXHR);
+        showJQueryResponse('✅ .done() method works! Data: ' + JSON.stringify(data, null, 2));
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        console.error('Request failed:', errorThrown);
+        showJQueryResponse('❌ Request failed: ' + errorThrown);
     });
 }
 
