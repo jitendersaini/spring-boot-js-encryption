@@ -69,11 +69,19 @@ class EncryptionClient {
             const key = await this.getEncryptionKey();
             // The key from server is Base64 encoded, so we need to parse it as Base64
             const keyBytes = CryptoJS.enc.Base64.parse(key);
+            
+            // Generate random IV
+            const iv = CryptoJS.lib.WordArray.random(16);
+            
             const encrypted = CryptoJS.AES.encrypt(text, keyBytes, {
-                mode: CryptoJS.mode.ECB,
+                iv: iv,
+                mode: CryptoJS.mode.CBC,
                 padding: CryptoJS.pad.Pkcs7
             });
-            return encrypted.toString();
+            
+            // Prepend IV to encrypted data (same as backend)
+            const encryptedWithIv = iv.concat(encrypted.ciphertext);
+            return CryptoJS.enc.Base64.stringify(encryptedWithIv);
         } catch (error) {
             console.error('Encryption failed:', error);
             throw error;
@@ -90,11 +98,19 @@ class EncryptionClient {
         try {
             // The key from server is Base64 encoded, so we need to parse it as Base64
             const keyBytes = CryptoJS.enc.Base64.parse(key);
+            
+            // Generate random IV
+            const iv = CryptoJS.lib.WordArray.random(16);
+            
             const encrypted = CryptoJS.AES.encrypt(text, keyBytes, {
-                mode: CryptoJS.mode.ECB,
+                iv: iv,
+                mode: CryptoJS.mode.CBC,
                 padding: CryptoJS.pad.Pkcs7
             });
-            return encrypted.toString();
+            
+            // Prepend IV to encrypted data (same as backend)
+            const encryptedWithIv = iv.concat(encrypted.ciphertext);
+            return CryptoJS.enc.Base64.stringify(encryptedWithIv);
         } catch (error) {
             console.error('Synchronous encryption failed:', error);
             throw error;
@@ -112,6 +128,32 @@ class EncryptionClient {
 
 // Global encryption client instance
 const encryptionClient = new EncryptionClient();
+
+/**
+ * Update the encryption status display
+ */
+function updateEncryptionStatus() {
+    const statusElement = document.getElementById('encryptionStatusText');
+    const statusContainer = document.getElementById('encryptionStatus');
+    
+    if (typeof window.ENCRYPTION_ENABLED !== 'undefined') {
+        if (window.ENCRYPTION_ENABLED) {
+            statusElement.textContent = '✅ Enabled - Requests will be encrypted';
+            statusContainer.className = 'alert alert-success';
+        } else {
+            statusElement.textContent = '❌ Disabled - Requests will be sent as plain text';
+            statusContainer.className = 'alert alert-warning';
+        }
+    } else {
+        statusElement.textContent = '⚠️ Unknown - Using fallback behavior';
+        statusContainer.className = 'alert alert-info';
+    }
+}
+
+// Update status when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    updateEncryptionStatus();
+});
 
 /**
  * Make GET request (no encryption needed)
@@ -140,18 +182,29 @@ async function makePostRequest() {
         };
 
         const jsonData = JSON.stringify(userData);
-        const encryptedData = await encryptionClient.encrypt(jsonData);
+        
+        // Check if encryption is enabled globally
+        let requestBody, payloadDisplay;
+        if (typeof window.ENCRYPTION_ENABLED !== 'undefined' && !window.ENCRYPTION_ENABLED) {
+            console.log('Encryption disabled globally, sending plain text');
+            requestBody = jsonData;
+            payloadDisplay = 'Plain Text Payload: ' + jsonData;
+        } else {
+            const encryptedData = await encryptionClient.encrypt(jsonData);
+            requestBody = encryptedData;
+            payloadDisplay = 'Encrypted Payload: ' + encryptedData;
+        }
 
-        // Show encrypted payload
+        // Show payload
         document.getElementById('postEncryptedPayload').style.display = 'block';
-        document.getElementById('postEncryptedPayload').textContent = 'Encrypted Payload: ' + encryptedData;
+        document.getElementById('postEncryptedPayload').textContent = payloadDisplay;
 
         const response = await fetch('/api/user', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: encryptedData
+            body: requestBody
         });
 
         const data = await response.json();
@@ -176,18 +229,29 @@ async function makePutRequest() {
         };
 
         const jsonData = JSON.stringify(userData);
-        const encryptedData = await encryptionClient.encrypt(jsonData);
+        
+        // Check if encryption is enabled globally
+        let requestBody, payloadDisplay;
+        if (typeof window.ENCRYPTION_ENABLED !== 'undefined' && !window.ENCRYPTION_ENABLED) {
+            console.log('Encryption disabled globally, sending plain text');
+            requestBody = jsonData;
+            payloadDisplay = 'Plain Text Payload: ' + jsonData;
+        } else {
+            const encryptedData = await encryptionClient.encrypt(jsonData);
+            requestBody = encryptedData;
+            payloadDisplay = 'Encrypted Payload: ' + encryptedData;
+        }
 
-        // Show encrypted payload
+        // Show payload
         document.getElementById('putEncryptedPayload').style.display = 'block';
-        document.getElementById('putEncryptedPayload').textContent = 'Encrypted Payload: ' + encryptedData;
+        document.getElementById('putEncryptedPayload').textContent = payloadDisplay;
 
         const response = await fetch('/api/user/' + userId, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: encryptedData
+            body: requestBody
         });
 
         const data = await response.json();
@@ -242,6 +306,12 @@ async function refreshEncryptionKey() {
     // Function to determine if a request should be encrypted
     function shouldEncryptRequest(url) {
         if (!url) return false;
+        
+        // Check if encryption is enabled globally
+        if (typeof window.ENCRYPTION_ENABLED !== 'undefined' && !window.ENCRYPTION_ENABLED) {
+            console.log('Encryption disabled globally, skipping encryption for:', url);
+            return false;
+        }
         
         // List of URL patterns that require encryption
         const encryptedPatterns = [
@@ -585,4 +655,18 @@ function showDataTableResponse(title, data) {
     const responseDiv = document.getElementById('datatableResponse');
     responseDiv.style.display = 'block';
     responseDiv.innerHTML = '<strong>' + title + '</strong><br>' + JSON.stringify(data, null, 2);
+}
+
+/**
+ * Test function to demonstrate encryption status
+ */
+function testEncryptionStatus() {
+    const status = {
+        encryptionEnabled: typeof window.ENCRYPTION_ENABLED !== 'undefined' ? window.ENCRYPTION_ENABLED : 'undefined',
+        encryptionKey: typeof window.ENCRYPTION_KEY !== 'undefined' ? window.ENCRYPTION_KEY.substring(0, 20) + '...' : 'undefined',
+        clientBehavior: typeof window.ENCRYPTION_ENABLED !== 'undefined' && !window.ENCRYPTION_ENABLED ? 'Will send plain text' : 'Will encrypt requests'
+    };
+    
+    console.log('Encryption Status Test:', status);
+    showJQueryResponse('🔍 Encryption Status Test', status);
 }
