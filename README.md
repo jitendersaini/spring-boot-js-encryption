@@ -51,8 +51,7 @@ src/main/resources/
 ├── templates/
 │   └── index.html                         # Thymeleaf frontend with embedded keys
 ├── static/js/
-│   ├── encryption.js                      # Core encryption logic (framework-agnostic)
-│   └── application.js                     # Application-specific functionality
+│   └── encryption.js                      # Client-side encryption logic
 ├── application.yml                        # Application configuration
 └── application-prod.yml                   # Production configuration
 ```
@@ -117,7 +116,6 @@ src/main/resources/
 - ✅ **jQuery Override**: Automatic encryption for `data: { 'param': xyz }` format
 - ✅ **@RequestParam vs @RequestBody**: Demonstrates the difference with encrypted data
 - ✅ **DataTable Integration**: Works seamlessly with encryption
-- ✅ **Modular JavaScript**: Split into `encryption.js` (core) and `application.js` (app-specific)
 
 ## 🔒 Security Features
 
