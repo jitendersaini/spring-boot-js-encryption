@@ -29,6 +29,8 @@ src/main/java/com/example/encryptiondemo/
 ├── controller/
 │   ├── ApiController.java                 # REST API endpoints
 │   ├── WebController.java                 # Web controller for Thymeleaf
+│   ├── UserController.java                # User-specific endpoints
+│   ├── DepartmentController.java          # Department endpoints
 │   └── KeyController.java                 # Key management (deprecated for security)
 ├── dto/
 │   ├── UserRequest.java                   # Request DTO
@@ -42,15 +44,17 @@ src/main/java/com/example/encryptiondemo/
 │   ├── EncryptionUtil.java                # AES encryption/decryption utility
 │   └── KeyGeneratorUtil.java              # Key generation utility
 └── config/
+    ├── EncryptionProperties.java          # Encryption configuration
     └── FilterConfig.java                  # Filter configuration
 
 src/main/resources/
 ├── templates/
 │   └── index.html                         # Thymeleaf frontend with embedded keys
 ├── static/js/
-│   └── encryption.js                      # Client-side encryption logic
-├── application.properties                 # Application configuration
-└── application-prod.properties            # Production configuration
+│   ├── encryption.js                      # Core encryption logic (framework-agnostic)
+│   └── application.js                     # Application-specific functionality
+├── application.yml                        # Application configuration
+└── application-prod.yml                   # Production configuration
 ```
 
 ## 🚀 Running the Application
@@ -89,9 +93,13 @@ src/main/resources/
 ## 🔌 API Endpoints
 
 - `GET /api/hello` - Simple GET request (no encryption)
+- `GET /api/users` - Get all users (DataTable data)
 - `POST /api/user` - Create user (encrypted payload)
 - `PUT /api/user/{id}` - Update user (encrypted payload)
 - `DELETE /api/user/{id}` - Delete user (no payload)
+- `POST /api/test-param` - Test @RequestParam vs @RequestBody
+- `POST /user/create` - Create user via user controller (encrypted)
+- `POST /department/create` - Create department (encrypted)
 - `POST /api/encryption-key` - **DEPRECATED** (returns 405 for security)
 
 ## 🧪 Testing the Encryption
@@ -101,7 +109,15 @@ src/main/resources/
 3. Click any POST or PUT button on the web page
 4. Look at the request payload - it will be encrypted
 5. Check server logs to see the decrypted data
-6. Verify that `/api/encryption-key` returns 405 Method Not Allowed
+6. Test the jQuery override with various data formats
+7. Try the DataTable functionality with automatic encryption
+8. Verify that `/api/encryption-key` returns 405 Method Not Allowed
+
+### Key Features Fixed
+- ✅ **jQuery Override**: Automatic encryption for `data: { 'param': xyz }` format
+- ✅ **@RequestParam vs @RequestBody**: Demonstrates the difference with encrypted data
+- ✅ **DataTable Integration**: Works seamlessly with encryption
+- ✅ **Modular JavaScript**: Split into `encryption.js` (core) and `application.js` (app-specific)
 
 ## 🔒 Security Features
 

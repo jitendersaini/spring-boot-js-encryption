@@ -137,7 +137,9 @@
                         <button class="btn btn-warning mb-2" onclick="testJQueryUser()">Test jQuery AJAX to /user/create</button><br>                                                                             
                         <button class="btn btn-info mb-2" onclick="testJQueryDepartment()">Test jQuery AJAX to /department/create</button><br>                                                                    
                         <button class="btn btn-success mb-2" onclick="testJQueryDoneMethod()">Test .done() Method</button><br>                                                                                    
-                        <button class="btn btn-dark mb-2" onclick="testJQueryAbortMethod()">Test .abort() Method (DataTables Compatible)</button><br>                                                                                                                                                                      
+                        <button class="btn btn-dark mb-2" onclick="testJQueryAbortMethod()">Test .abort() Method (DataTables Compatible)</button><br>
+                        <button class="btn btn-danger mb-2" onclick="testJQueryParamIssue()">Test data: { 'param': 'xyz' } Issue</button><br>
+                        <button class="btn btn-secondary mb-2" onclick="testRequestParamVsRequestBody()">Test @RequestParam vs @RequestBody</button><br>                                                                                                                                                                      
                         <div id="jqueryResponse" class="response-area mt-3" style="display: none;"></div>
                     </div>
                 </div>
@@ -185,5 +187,6 @@
         window.ENCRYPTION_KEY = /*[[${encryptionKey}]]*/ 'fallback-key';
     </script>
     <script src="/js/encryption.js"></script>
+    <script src="/js/application.js"></script>
 </body>
 </html>

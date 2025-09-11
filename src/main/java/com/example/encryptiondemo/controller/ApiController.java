@@ -83,4 +83,21 @@ public class ApiController {
         
         return new ApiResponse(true, "User deleted successfully!", responseData);
     }
+    
+    @PostMapping("/test-param")
+    public ApiResponse testRequestParam(@RequestParam(required = false) String param, 
+                                       @RequestParam(required = false) String name,
+                                       @RequestParam(required = false) String email) {
+        System.out.println("Received @RequestParam data - param: " + param + ", name: " + name + ", email: " + email);
+        
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("param", param);
+        responseData.put("name", name);
+        responseData.put("email", email);
+        responseData.put("timestamp", LocalDateTime.now());
+        responseData.put("method", "POST");
+        responseData.put("note", "This endpoint uses @RequestParam - will be null with encrypted data");
+        
+        return new ApiResponse(true, "RequestParam test completed!", responseData);
+    }
 }
